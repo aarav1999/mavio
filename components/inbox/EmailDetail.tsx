@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { EmailWithAI, ReplyDraft } from '@/types/email';
 import { format } from 'date-fns';
 import { ArrowLeft, Star, Archive, Trash2, Reply, Forward, MoreHorizontal } from 'lucide-react';
@@ -18,6 +18,15 @@ interface Props {
 
 export function EmailDetail({ email, onBack, onAction, onReply, onForward }: Props) {
   const [showFullBody, setShowFullBody] = useState(false);
+  const markedAsReadRef = useRef<string | null>(null);
+
+  // Auto-mark as read when email is opened (only once per email)
+  useEffect(() => {
+    if (!email.isRead && markedAsReadRef.current !== email.id) {
+      markedAsReadRef.current = email.id;
+      onAction('markRead', email.threadId, email.id);
+    }
+  }, [email.id, email.isRead, email.threadId, onAction]);
 
   return (
     <div className="flex flex-col h-full">

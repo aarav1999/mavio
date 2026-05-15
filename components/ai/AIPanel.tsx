@@ -192,7 +192,7 @@ export function AIPanel({ email, onUseDraft }: Props) {
               {email.aiPriorityScore && (
                 <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full">
                   <span className="font-medium">Priority Score:</span>
-                  <span>{email.aiPriorityScore}/100</span>
+                  <span>{Math.min(email.aiPriorityScore, 100)}/100</span>
                 </div>
               )}
               {email.aiConfidence && (

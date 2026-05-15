@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     // Map common Gmail labels to their IDs
     const labelMap: Record<string, string> = {
       'INBOX': 'INBOX',
+      'DRAFT': 'DRAFT',
       'DRAFTS': 'DRAFT',
       'STARRED': 'STARRED',
       'IMPORTANT': 'IMPORTANT',
