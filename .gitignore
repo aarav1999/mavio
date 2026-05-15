@@ -18,6 +18,11 @@ frontend/public/workbox-*.js
 frontend/public/worker-*.js
 frontend/public/sw.js.map
 frontend/public/workbox-*.js.map
+public/sw.js
+public/workbox-*.js
+public/worker-*.js
+public/sw.js.map
+public/workbox-*.js.map
 
 # Production
 *.tsbuildinfo
