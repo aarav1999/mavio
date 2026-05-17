@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { signOut } from 'next-auth/react';
-import { Menu, X, Mail, Star, Send, Archive, Trash2, Inbox, Tag, LogOut } from 'lucide-react';
+import { Menu, X, Mail, Star, Send, Archive, Trash2, Inbox, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AccountSwitcher } from './AccountSwitcher';
 
 interface Props {
   user: { name: string; email: string; image: string };
@@ -65,17 +65,7 @@ export function MobileNav({ user, activeLabel, onLabelChange, onCompose }: Props
             </nav>
 
             <div className="p-3 border-t border-border">
-              <div className="px-2 py-1 mb-2">
-                <p className="text-xs font-medium truncate">{user.name}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
-              </div>
-              <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign out
-              </button>
+              <AccountSwitcher />
             </div>
           </div>
         </div>

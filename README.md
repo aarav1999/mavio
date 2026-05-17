@@ -1,34 +1,78 @@
-# Mavio — AI-First Email Client
+# Mavio — AI-First Universal Email Client
 
-A mobile-ready PWA email client with AI summaries, smart reply drafts, and priority inbox triage. Built with Next.js 15, Prisma, Neon Postgres, and Groq (Llama 3.3 70B).
+<!-- After pushing to GitHub, replace OWNER/REPO below to enable the badge. -->
+<!-- ![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg) -->
 
-> **Live demo:** _(deploy to Vercel and paste URL here)_
+A mobile-ready PWA email client that unifies Gmail, Office 365, and IMAP (Yahoo / AOL / iCloud / custom) under one inbox, with AI summaries, smart reply drafts, priority triage, pattern detection, and folder suggestions.
+
+> **Live demo:** https://mavio.vercel.app
+> Built with Next.js 15 · Prisma + Neon Postgres (pgvector) · Groq Llama 3.3 70B · Hugging Face embeddings · Vercel.
+
+---
+
+## Quick Start
+
+### Deploy to Vercel
+
+1. Push this repository to GitHub
+2. Import on Vercel
+3. Configure environment variables (see below)
+4. Deploy
+
+### Local Development
+
+```bash
+npm install
+cp .env.example .env.local       # then fill in keys (see below)
+npx prisma generate
+npx prisma db push               # push schema to Neon
+npm run dev                      # http://localhost:3000
+```
 
 ---
 
-## What it does
+## Deliverables (per the brief)
 
-- **Unified inbox** with real-time Gmail sync, search, archive, delete, star
-- **AI insights panel** per email — generated summary + 3 smart reply drafts (professional / friendly / concise)
-- **Compose + reply** with one-click "use draft" from AI replies
-- **Background poll** every 30 s for new mail; immediate refresh after send
-- **Mobile-first responsive UI** with a sidebar nav drawer
-- **Installable PWA** with manifest + standalone display
+| Deliverable | Location |
+|---|---|
+| Live Vercel URL | https://mavio.vercel.app |
+| `CLAUDE.md` | [`docs/CLAUDE.md`](docs/CLAUDE.md) (project context) and [`CLAUDE.md`](CLAUDE.md) (code-side rules) |
+| One-page architecture doc | [`docs/architecture.md`](docs/architecture.md) |
+| List of agents / skills / hooks / plugins | [`docs/AGENTS_SKILLS_HOOKS_PLUGINS.md`](docs/AGENTS_SKILLS_HOOKS_PLUGINS.md) |
+| Workflow writeup | [`docs/agent-workflow.md`](docs/agent-workflow.md) |
+| Automated tests | `{agents,skills,lib}/__tests__/` (Jest, 75 tests in 14 suites) |
+| CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — lint + `tsc --noEmit` + Jest |
 
 ---
+
+## Feature snapshot
+
+- **Unified inbox** across Gmail, Office 365 / Outlook, and IMAP (Yahoo, AOL, iCloud, custom)
+- **Account switching** between any combination of providers under one login
+- **Compose / reply / forward / search / archive / delete / star / read-flag / labels**
+- **AI insights per email** — generated summary + 3 smart reply drafts (professional / friendly / concise) + priority score + factors + classification + actions
+- **Cross-email pattern detection** — recurring senders, deadline clusters, unreplied urgent
+- **Smart folder suggestions** — bulk-organize actions
+- **Semantic search** with pgvector + Hugging Face embeddings
+- **Keyboard shortcuts** — j/k navigation, e archive, r reply, c compose, s star, ? help
+- **Encrypted IMAP credentials** at rest (AES-256-GCM)
+- **Installable PWA** — manifest + standalone display
+- **Mobile-first responsive UI** with sidebar nav drawer
 
 ## Tech stack
 
 | Layer | Choice |
 |---|---|
-| App framework | Next.js 15 App Router (fullstack) |
+| Framework | Next.js 15 App Router (fullstack, single deployment) |
 | Language | TypeScript (strict) |
-| Auth | NextAuth.js + Google OAuth (with refresh-token rotation) |
-| Database | Neon Postgres + Prisma (pgvector enabled) |
-| AI runtime | Groq SDK → `llama-3.3-70b-versatile` |
-| Email API | googleapis (Gmail v1) |
+| Auth | Custom JWT session in `lib/oauth.ts` + Google OAuth + Azure AD (refresh-token rotation) |
+| Database | Neon Postgres + Prisma + pgvector |
+| AI | Groq SDK · `llama-3.3-70b-versatile` |
+| Embeddings | Hugging Face inference · `sentence-transformers/all-MiniLM-L6-v2` |
+| Email APIs | googleapis (Gmail v1) · Microsoft Graph v1 (Outlook) · imapflow + nodemailer + mailparser (IMAP/SMTP) |
 | UI | Tailwind CSS + Radix UI + Lucide icons |
-| Deployment | Vercel |
+| PWA | next-pwa + manifest |
+| Hosting | Vercel |
 
 ---
 
@@ -36,97 +80,62 @@ A mobile-ready PWA email client with AI summaries, smart reply drafts, and prior
 
 ```
 .
-├── README.md              ← you are here
+├── README.md                       — this file
+├── .github/workflows/ci.yml        — lint + typecheck + tests on every push/PR
 ├── docs/
-│   ├── CLAUDE.md          ← project context for AI pair-programmer
-│   ├── architecture.md    ← one-page architecture doc
-│   └── agent-workflow.md  ← agents / skills / hooks / plugins writeup
-└── frontend/              ← the Next.js app
-    ├── app/
-    ├── components/
-    ├── lib/
-    ├── prisma/
-    └── types/
+│   ├── CLAUDE.md                   — project context for AI pair-programmer
+│   ├── architecture.md             — one-page architecture
+│   ├── agent-workflow.md           — workflow writeup
+│   ├── AGENTS_SKILLS_HOOKS_PLUGINS.md
+│   └── screenshots/
+├── app/                            — routes + API handlers
+├── agents/                         — 7 AI agents (Groq prompts)
+├── skills/                         — 5 reusable pure functions
+├── hooks/                          — 3 lifecycle hooks + UI keyboard hook
+├── plugins/                        — 3 EmailProvider plugins (Gmail / Outlook / IMAP)
+├── components/                     — React UI
+├── lib/                            — providers, orchestrator, ai, oauth, encryption, db
+└── prisma/schema.prisma
 ```
 
 ---
 
 ## Screenshots
 
-### Inbox View
+### Inbox + AI insights
 ![Inbox](docs/screenshots/inbox.png)
 
-### AI Summary
-![AI Summary](docs/screenshots/ai-summary.png)
+### AI panel — summary + priority + factors
+![AI panel](docs/screenshots/ai-panel.png)
 
-### Smart Replies
-![Smart Replies](docs/screenshots/smart-replies.png)
+### Smart reply drafts (3 tones)
+![Smart replies](docs/screenshots/smart-replies.png)
 
-### Mobile UI
+### Account switcher across providers
+![Account switcher](docs/screenshots/account-switcher.png)
+
+### Mobile responsive view
 ![Mobile UI](docs/screenshots/mobile-ui.png)
 
 ---
 
-## Why This Architecture
+## Why this architecture
 
-### Why No Microservices?
+### Monolithic Next.js fullstack
+One Vercel deployment. No FastAPI sidecar, no separate worker, no service mesh. Faster iteration; easy to extract microservices later if scale demands it.
 
-A monolithic Next.js fullstack app is the right choice for an MVP because:
-- **Faster iteration** — No network boundaries between frontend, API, and AI logic
-- **Simpler deployment** — One Vercel deployment vs coordinating multiple services
-- **Lower operational complexity** — No Docker, no service mesh, no inter-service auth
-- **Adequate performance** — Groq API calls are fast (<1s), so no need for async queues yet
+### Pragmatic multi-agent, not LangGraph
+The seven agents are specialized prompt-functions sharing a Groq client. They run sequentially in `lib/orchestrator.ts` from `POST /api/ai/analyze`. This is **deliberate** — every operation is single-pass; LangGraph would only inflate latency and cost for an MVP. The seam to add a real DAG is in place.
 
-Microservices become valuable when you have multiple teams working independently or need to scale individual components. This is a single-dev MVP.
+### On-demand AI with DB cache
+Free Groq tier is 14,400 requests/day. Background analysis on every fetched email burns it in minutes. AI runs only when the user clicks **Generate**; results persist to `Email.ai*` columns and load instantly thereafter.
 
-### Why No LangGraph?
+### Three real providers, not stubs
+- Gmail — googleapis + Google OAuth, refresh-token rotation
+- Outlook / Office 365 — Microsoft Graph + Azure AD, custom Prisma adapter to strip `ext_expires_in`
+- IMAP — imapflow + nodemailer + mailparser, AES-256-GCM password encryption
 
-LangGraph is excellent for complex multi-agent workflows with stateful orchestration. This app's AI needs are simple:
-- Single-pass summary generation
-- Single-pass reply drafting
-- Single-pass priority analysis
-
-These are independent, one-shot operations. Adding LangGraph would be over-engineering — it would introduce:
-- Additional dependency complexity
-- State management overhead
-- Debugging complexity for linear operations
-
-If we later add multi-step reasoning (e.g., "research this topic, then draft a reply, then schedule a meeting"), LangGraph would be justified.
-
-### Why On-Demand AI?
-
-The original design auto-analyzed every email after fetch. Free-tier quotas (Groq: 14,400 req/day) burned through in minutes with a busy inbox.
-
-**On-demand with caching** is the right approach:
-- User clicks "Generate" → AI call → cache in database
-- Re-opening the email → instant load from cache
-- Quota preserved for actual user intent
-
-This is a deliberate UX tradeoff: slightly more friction for massive cost savings and quota headroom.
-
-### Why Cache-First?
-
-Every AI result (summary, priority, drafts) is cached in the Postgres database:
-- **Instant re-opens** — No AI latency on cached emails
-- **Quota preservation** — Never re-analyze the same email
-- **Offline-ish** — Cached insights work even if Groq is down
-
-The cache is simple: one `aiSummary` column per email row. No Redis, no separate cache layer.
-
-### Why Gmail-First?
-
-Gmail has:
-- 1.8B+ users (largest email provider)
-- Excellent OAuth 2.0 flow with refresh tokens
-- Robust REST API with thread support
-- Free tier with generous quotas
-
-Outlook and IMAP have stubbed `EmailProvider` types in the schema. Adding them is:
-- One new provider file (e.g., `lib/outlook/client.ts`)
-- One new OAuth configuration
-- Same UI (already provider-agnostic)
-
-Gmail-first is a scoping decision, not a technical limitation.
+IMAP archive/trash/star/search are deliberately handled DB-side because folder semantics vary across servers — see the inline note in `frontend/lib/providers/imap.ts`.
 
 ---
 
@@ -135,50 +144,54 @@ Gmail-first is a scoping decision, not a technical limitation.
 ```bash
 cd frontend
 npm install
-cp .env.example .env.local      # then fill in keys (see below)
-npx prisma db push              # push schema to Neon
-npm run dev                     # http://localhost:3000
+cp .env.example .env.local       # then fill in keys (see below)
+npx prisma generate
+npx prisma db push               # push schema to Neon
+npm run dev                      # http://localhost:3000
 ```
 
 ### Required environment variables
 
-| Variable | Where to get it |
-|---||
+| Variable | Source |
+|---|---|
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud Console → OAuth 2.0 client. Redirect URI: `http://localhost:3000/api/auth/callback/google` |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud Console → OAuth client. Redirect URI: `http://localhost:3000/api/auth/callback/google` |
+| `AZURE_AD_CLIENT_ID` / `AZURE_AD_CLIENT_SECRET` / `AZURE_AD_TENANT_ID` | Azure Portal → App registrations. Redirect URI: `http://localhost:3000/api/auth/callback/azure-ad` |
 | `GROQ_API_KEY` | https://console.groq.com/keys (free, 14,400 req/day) |
-| `DATABASE_URL` / `DIRECT_URL` | Neon project connection string |
+| `HF_API_KEY` | https://huggingface.co/settings/tokens (free, used for semantic search embeddings) |
+| `DATABASE_URL` / `DIRECT_URL` | Neon project connection strings |
+| `ENCRYPTION_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` (required for IMAP password encryption) |
+
+### Run the test suite
+
+```bash
+npm test                  # 75 unit tests across 14 suites
+npx tsc --noEmit          # type-check
+npm run test:e2e          # Playwright auth-redirect smoke test
+npm run lint
+```
+
+CI runs all of these on every push and pull request.
 
 ---
 
 ## Deploy to Vercel
 
-1. Push this repo to GitHub
-2. Import on Vercel; root directory = `frontend`
-3. Paste the same env vars from `.env.local`
-4. Add the Vercel URL to Google OAuth → Authorized redirect URIs
-5. Set `NEXTAUTH_URL` to your Vercel URL
+1. Push the repo to GitHub.
+2. Import on Vercel.
+3. Paste the same env vars from `.env.local`.
+4. Add the deployed Vercel URL to the Google OAuth + Azure AD authorised redirect URIs.
+5. Set `NEXTAUTH_URL` to your Vercel URL.
 
 ---
 
-## Tradeoffs & honest limitations
+## Honest scope
 
-These are intentional MVP scoping decisions.
+**Implemented and working:**
+Unified inbox · Gmail / Outlook / IMAP · account switching · compose / reply / forward / search · archive / delete / star / mark read · AI summary · explainable priority · 3-tone reply drafts · classification · pattern detection · folder suggestions · semantic search · keyboard shortcuts · onboarding · encrypted IMAP creds · PWA.
 
-- **Gmail only.** Outlook and IMAP have typed `EmailProvider` stubs but no real integration. Adding them is one file each; the UI doesn't change.
-- **On-demand AI, not background.** The original plan auto-analyzed every inbox email after fetch. Free-tier quotas burned through in minutes, so analysis now triggers only when the user clicks "Generate." Results are cached.
-- **Single-account session.** The schema supports multiple `Account` rows per user, but the UI doesn't expose account switching yet.
-- **No conversation grouping.** Each Gmail thread is rendered as a single email (the first message). Multi-message threading is deferred.
-- **PWA shell only.** The manifest is wired, but message-level offline sync (IndexedDB) is out of scope.
-- **No push notifications.** Background polling at 30 s is the freshness mechanism.
-
-These are documented in `docs/architecture.md` and `docs/CLAUDE.md` so reviewers know what's real.
-
----
-
-## Build with Claude Code
-
-See `docs/agent-workflow.md` for the workflow: specs-first development, role-based AI prompts (Summarizer / Prioritizer / Action Extractor / Reply Drafter / Next-Step Suggester), reusable skills, lifecycle hooks, and pluggable provider implementations.
+**Deferred (out of MVP scope, documented in `docs/CLAUDE.md`):**
+Conversation threading · message-level offline sync via IndexedDB · push notifications · IMAP archive/trash at the IMAP layer · advanced label management · analytics dashboard.
 
 ---
 

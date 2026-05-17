@@ -16,6 +16,8 @@ model Account {
   type              String
   provider          String
   providerAccountId String
+  email             String?
+  name              String?
   refresh_token     String? @db.Text
   access_token      String? @db.Text
   expires_at        Int?
@@ -23,7 +25,23 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
+
+  // IMAP-specific fields (nullable; only set when provider = 'imap')
+  imapHost          String?
+  imapPort          Int?
+  smtpHost          String?
+  smtpPort          Int?
+  encryptedPassword String? @db.Text
+  encryptionIv      String?
+  encryptionTag     String?
+
+  // Health / sync status (applies to all providers)
+  isHealthy         Boolean   @default(true)
+  lastSyncAt        DateTime?
+  lastError         String?
+
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emails            Email[]
 
   @@unique([provider, providerAccountId])
 }
@@ -34,6 +52,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionToken])
 }
 
 model User {
@@ -45,12 +65,16 @@ model User {
   accounts      Account[]
   sessions      Session[]
   emails        Email[]
+  onboardingCompleted Boolean @default(false)
 }
 
 model Email {
   id              String   @id @default(cuid())
   userId          String
-  gmailId         String   @unique
+  accountId       String?  // Track which account fetched this email
+  gmailId         String?
+  outlookId       String?
+  providerMessageId String? // Provider-agnostic id (used for IMAP; Gmail/Outlook keep their existing columns)
   threadId        String
   subject         String
   fromName        String?
@@ -75,12 +99,19 @@ model Email {
   aiCategory      String?
   aiPriorityFactors Json?
   aiConfidence     String?
-  aiEmbedding     Unsupported("vector(768)")?
+  // aiEmbedding     Vector(384)? // pgvector extension disabled for now
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([userId, receivedAt(sort: Desc)])
   @@index([userId, threadId])
   @@index([userId, isArchived])
   @@index([gmailId])
+  @@index([outlookId])
+  @@index([accountId, providerMessageId])
+  @@index([userId, accountId, receivedAt(sort: Desc)])
+  @@unique([userId, gmailId])
+  @@unique([userId, outlookId])
+  @@unique([accountId, providerMessageId])
 }

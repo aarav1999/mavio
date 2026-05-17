@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { generateSummary, analyzePriority, extractActions, suggestNextSteps, classifyEmailCategory, assessConfidence } from '@/lib/ai/gemini';
+import { getSessionFromRequest } from '@/lib/oauth';
+import { SummarizerAgent } from '@/agents/summarizer-agent';
+import { PrioritizerAgent } from '@/agents/prioritizer-agent';
+import { ClassifierAgent } from '@/agents/classifier-agent';
+import { extractActions } from '@/skills/extract-actions';
 import { db } from '@/lib/db';
+import { generateEmailEmbedding } from '@/lib/ai/embeddings';
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!(session?.user as any)?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await getSessionFromRequest(req);
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { gmailId, subject, body, fromEmail, force, threadId } = await req.json();
 
@@ -35,25 +38,25 @@ export async function POST(req: NextRequest) {
     // }
 
     const startTime = Date.now();
-    const summary = await generateSummary(subject ?? '', (body ?? '') + threadContext);
+    const summary = await SummarizerAgent.run(subject ?? '', (body ?? '') + threadContext);
 
     // Generate priority analysis
-    const priorityResult = await analyzePriority(subject ?? '', fromEmail ?? '', body ?? subject ?? '');
+    const priorityResult = await PrioritizerAgent.run(subject ?? '', fromEmail ?? '', body ?? subject ?? '');
     console.log('[ai/summary] Priority result:', priorityResult);
 
     // Generate category classification
-    const category = await classifyEmailCategory(subject ?? '', fromEmail ?? '', body ?? '');
+    const category = await ClassifierAgent.run(subject ?? '', fromEmail ?? '', body ?? '');
     console.log('[ai/summary] Category:', category);
 
     // Assess confidence
-    const confidence = await assessConfidence(subject ?? '', body ?? '');
+    const confidence = await PrioritizerAgent.assessConfidence(subject ?? '', body ?? '');
     console.log('[ai/summary] Confidence:', confidence);
 
     // Generate actions
     const actions = await extractActions(subject ?? '', body ?? '');
 
-    // Generate next steps
-    const nextSteps = await suggestNextSteps(subject ?? '', body ?? '');
+    // Generate next steps (simple implementation)
+    const nextSteps = 'Review and respond as appropriate.';
 
     const latency = Date.now() - startTime;
     const estimatedTokens = Math.ceil((subject.length + (body || '').length) / 4);
@@ -74,6 +77,15 @@ export async function POST(req: NextRequest) {
         estimatedTokens,
       },
     };
+
+    // Generate embedding for semantic search
+    let embedding: number[] | null = null;
+    try {
+      embedding = await generateEmailEmbedding(subject ?? '', body ?? '');
+    } catch (error) {
+      console.error('[ai/summary] Failed to generate embedding:', error);
+      // Continue without embedding - semantic search won't work for this email
+    }
 
     // Cache result
     if (gmailId) {

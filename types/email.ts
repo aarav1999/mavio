@@ -11,6 +11,8 @@ export interface ParsedEmail {
   isStarred: boolean;
   labels: string[];
   receivedAt: Date;
+  accountId?: string;
+  provider?: string;
 }
 
 export interface EmailWithAI extends ParsedEmail {

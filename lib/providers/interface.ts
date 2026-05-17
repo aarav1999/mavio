@@ -3,6 +3,7 @@ export interface ListOptions {
   pageToken?: string;
   q?: string;
   labelIds?: string[];
+  folder?: string; // For IMAP provider to specify folder name
 }
 
 export interface ThreadSummary {
@@ -24,16 +25,16 @@ export interface SendOptions {
 }
 
 export interface EmailProvider {
-  listThreads(opts?: ListOptions): Promise<ThreadList>;
-  getThread(threadId: string): Promise<any>;
-  sendEmail(opts: SendOptions): Promise<void>;
-  archiveEmail(messageId: string): Promise<void>;
-  markRead(messageId: string): Promise<void>;
-  markUnread(messageId: string): Promise<void>;
-  starEmail(messageId: string): Promise<void>;
-  unstarEmail(messageId: string): Promise<void>;
-  trashEmail(messageId: string): Promise<void>;
-  searchEmails(query: string, maxResults?: number): Promise<{ id: string; threadId: string }[]>;
+  listThreads(accessToken: string, opts?: ListOptions): Promise<ThreadList>;
+  getThread(accessToken: string, threadId: string): Promise<any>;
+  sendEmail(accessToken: string, opts: SendOptions): Promise<void>;
+  archiveEmail(accessToken: string, messageId: string): Promise<void>;
+  markRead(accessToken: string, messageId: string): Promise<void>;
+  markUnread(accessToken: string, messageId: string): Promise<void>;
+  starEmail(accessToken: string, messageId: string): Promise<void>;
+  unstarEmail(accessToken: string, messageId: string): Promise<void>;
+  trashEmail(accessToken: string, messageId: string): Promise<void>;
+  searchEmails(accessToken: string, query: string, maxResults?: number): Promise<{ id: string; threadId: string }[]>;
 }
 
 export type ProviderType = 'gmail' | 'outlook' | 'imap';

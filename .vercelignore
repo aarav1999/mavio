@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Testing
+coverage
+.nyc_output
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Misc
+.DS_Store
+*.pem
+.env*.local
+.env.example
+.env
+.vercel
+
+# Debug
+*.log
+.vscode
+.idea
+
+# Build outputs
+.next
+out
+dist
+build
+
+# Prisma
+prisma/migrations

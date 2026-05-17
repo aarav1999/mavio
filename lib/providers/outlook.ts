@@ -1,57 +1,270 @@
 import { EmailProvider, ListOptions, ThreadList, SendOptions } from './interface';
 
+interface GraphMessage {
+  id: string;
+  conversationId: string;
+  subject: string;
+  from: {
+    emailAddress: {
+      name: string;
+      address: string;
+    };
+  };
+  toRecipients: Array<{
+    emailAddress: {
+      address: string;
+    };
+  }>;
+  body: {
+    content: string;
+    contentType: string;
+  };
+  bodyPreview: string;
+  receivedDateTime: string;
+  isRead: boolean;
+  flag?: {
+    flagStatus: string;
+  };
+}
+
+interface GraphResponse {
+  value: GraphMessage[];
+  '@odata.nextLink'?: string;
+}
+
 /**
- * OutlookProvider — scaffold stub
+ * OutlookProvider — Microsoft Graph API integration
  *
- * Integration path:
- * - OAuth: NextAuth Microsoft provider (azure-ad or microsoft-entra-id)
- * - API: Microsoft Graph API (https://graph.microsoft.com/v1.0/me/messages)
- * - Scopes: Mail.Read, Mail.Send, Mail.ReadWrite
- * - SDK: @microsoft/microsoft-graph-client
- *
- * This stub satisfies the EmailProvider interface.
- * Wire up MS Graph calls where indicated to complete implementation.
+ * Uses Microsoft Graph API to access Outlook/Office 365 emails
+ * API: https://graph.microsoft.com/v1.0/me/messages
+ * Scopes: Mail.Read, Mail.Send, Mail.ReadWrite
  */
 export class OutlookProvider implements EmailProvider {
-  constructor(private accessToken: string) {}
-
-  async listThreads(opts?: ListOptions): Promise<ThreadList> {
-    throw new Error('OutlookProvider: listThreads not yet implemented. Use MS Graph /me/mailFolders/inbox/messages');
+  private getHeaders(accessToken: string): HeadersInit {
+    return {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    };
   }
 
-  async getThread(threadId: string): Promise<any> {
-    throw new Error('OutlookProvider: getThread not yet implemented. Use MS Graph /me/messages/{id}');
+  async listThreads(accessToken: string, opts?: ListOptions): Promise<ThreadList> {
+    const maxResults = opts?.maxResults || 20;
+    const url = `https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=${maxResults}&$orderby=receivedDateTime desc&$select=id,conversationId,subject,from,toRecipients,body,bodyPreview,receivedDateTime,isRead,flag`;
+    
+    const response = await fetch(url, {
+      headers: this.getHeaders(accessToken),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const data: GraphResponse = await response.json();
+
+    const threads = data.value.map((msg) => ({
+      id: msg.id, // Use message ID instead of conversation ID for fetching
+      historyId: msg.id,
+      conversationId: msg.conversationId, // Store conversation ID separately
+    }));
+
+    return { threads, nextPageToken: data['@odata.nextLink'] };
   }
 
-  async sendEmail(opts: SendOptions): Promise<void> {
-    throw new Error('OutlookProvider: sendEmail not yet implemented. Use MS Graph /me/sendMail');
+  async getThread(accessToken: string, threadId: string): Promise<any> {
+    const url = `https://graph.microsoft.com/v1.0/me/messages/${threadId}?$expand=attachments`;
+    
+    const response = await fetch(url, {
+      headers: this.getHeaders(accessToken),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText}`);
+    }
+
+    const msg: GraphMessage = await response.json();
+
+    return {
+      id: msg.id,
+      threadId: msg.conversationId,
+      subject: msg.subject,
+      fromName: msg.from.emailAddress.name,
+      fromEmail: msg.from.emailAddress.address,
+      toEmail: msg.toRecipients[0]?.emailAddress.address || '',
+      body: msg.body.content,
+      snippet: msg.bodyPreview,
+      receivedAt: new Date(msg.receivedDateTime),
+      isRead: msg.isRead,
+      isStarred: msg.flag?.flagStatus === 'flagged',
+      labels: [],
+    };
   }
 
-  async archiveEmail(messageId: string): Promise<void> {
-    throw new Error('OutlookProvider: archiveEmail not yet implemented. Move to Archive folder via MS Graph');
+  async sendEmail(accessToken: string, opts: SendOptions): Promise<void> {
+    const url = 'https://graph.microsoft.com/v1.0/me/sendMail';
+    
+    const message = {
+      message: {
+        subject: opts.subject,
+        body: {
+          contentType: 'Text',
+          content: opts.body,
+        },
+        toRecipients: [
+          {
+            emailAddress: {
+              address: opts.to,
+            },
+          },
+        ],
+        ...(opts.inReplyTo && {
+          conversationId: opts.inReplyTo,
+        }),
+      },
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.getHeaders(accessToken),
+      body: JSON.stringify(message),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText}`);
+    }
   }
 
-  async markRead(messageId: string): Promise<void> {
-    throw new Error('OutlookProvider: markRead not yet implemented. PATCH /me/messages/{id} { isRead: true }');
+  async archiveEmail(accessToken: string, messageId: string): Promise<void> {
+    // First, get the Archive folder ID
+    const foldersUrl = 'https://graph.microsoft.com/v1.0/me/mailFolders?$filter=displayName eq \'Archive\'';
+    const foldersResponse = await fetch(foldersUrl, {
+      headers: this.getHeaders(accessToken),
+    });
+
+    if (!foldersResponse.ok) {
+      throw new Error(`Outlook API error: ${foldersResponse.status} ${foldersResponse.statusText}`);
+    }
+
+    const foldersData = await foldersResponse.json();
+    const archiveFolderId = foldersData.value?.[0]?.id;
+
+    if (!archiveFolderId) {
+      throw new Error('Archive folder not found');
+    }
+
+    // Move the message to Archive
+    const url = `https://graph.microsoft.com/v1.0/me/messages/${messageId}/move`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.getHeaders(accessToken),
+      body: JSON.stringify({
+        destinationId: archiveFolderId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText}`);
+    }
   }
 
-  async markUnread(messageId: string): Promise<void> {
-    throw new Error('OutlookProvider: markUnread not yet implemented. PATCH /me/messages/{id} { isRead: false }');
+  async markRead(accessToken: string, messageId: string): Promise<void> {
+    const url = `https://graph.microsoft.com/v1.0/me/messages/${messageId}`;
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: this.getHeaders(accessToken),
+      body: JSON.stringify({
+        isRead: true,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText}`);
+    }
   }
 
-  async starEmail(messageId: string): Promise<void> {
-    throw new Error('OutlookProvider: starEmail not yet implemented. Use flag in MS Graph');
+  async markUnread(accessToken: string, messageId: string): Promise<void> {
+    const url = `https://graph.microsoft.com/v1.0/me/messages/${messageId}`;
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: this.getHeaders(accessToken),
+      body: JSON.stringify({
+        isRead: false,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText}`);
+    }
   }
 
-  async unstarEmail(messageId: string): Promise<void> {
-    throw new Error('OutlookProvider: unstarEmail not yet implemented.');
+  async starEmail(accessToken: string, messageId: string): Promise<void> {
+    const url = `https://graph.microsoft.com/v1.0/me/messages/${messageId}`;
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: this.getHeaders(accessToken),
+      body: JSON.stringify({
+        flag: {
+          flagStatus: 'flagged',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText}`);
+    }
   }
 
-  async trashEmail(messageId: string): Promise<void> {
-    throw new Error('OutlookProvider: trashEmail not yet implemented. DELETE /me/messages/{id}');
+  async unstarEmail(accessToken: string, messageId: string): Promise<void> {
+    const url = `https://graph.microsoft.com/v1.0/me/messages/${messageId}`;
+    
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: this.getHeaders(accessToken),
+      body: JSON.stringify({
+        flag: {
+          flagStatus: 'notFlagged',
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText}`);
+    }
   }
 
-  async searchEmails(query: string, maxResults = 20): Promise<{ id: string; threadId: string }[]> {
-    throw new Error('OutlookProvider: searchEmails not yet implemented. Use MS Graph /me/messages?$search="{query}"');
+  async trashEmail(accessToken: string, messageId: string): Promise<void> {
+    const url = `https://graph.microsoft.com/v1.0/me/messages/${messageId}`;
+    
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: this.getHeaders(accessToken),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+  }
+
+  async searchEmails(accessToken: string, query: string, maxResults = 20): Promise<{ id: string; threadId: string }[]> {
+    const url = `https://graph.microsoft.com/v1.0/me/messages?$search="${encodeURIComponent(query)}"&$top=${maxResults}&$select=id,conversationId`;
+    
+    const response = await fetch(url, {
+      headers: this.getHeaders(accessToken),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Outlook API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data: GraphResponse = await response.json();
+
+    return data.value.map((msg) => ({
+      id: msg.id,
+      threadId: msg.conversationId,
+    }));
   }
 }

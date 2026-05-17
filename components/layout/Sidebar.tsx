@@ -1,15 +1,16 @@
 'use client';
 
-import { signOut } from 'next-auth/react';
-import { Mail, Star, Send, Archive, Trash2, PenSquare, LogOut, Inbox, Tag } from 'lucide-react';
+import { Mail, Star, Send, Archive, Trash2, PenSquare, Inbox, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { AccountSwitcher } from './AccountSwitcher';
 
 interface Props {
   user: { name: string; email: string; image: string };
   activeLabel: string;
   onLabelChange: (label: string) => void;
   onCompose: () => void;
+  onAccountRemoved?: (accountId: string) => void;
 }
 
 const navItems = [
@@ -21,9 +22,9 @@ const navItems = [
   { label: 'TRASH',   icon: Trash2,  display: 'Trash' },
 ];
 
-export function Sidebar({ user, activeLabel, onLabelChange, onCompose }: Props) {
+export function Sidebar({ user, activeLabel, onLabelChange, onCompose, onAccountRemoved }: Props) {
   return (
-    <aside className="w-56 flex flex-col h-full border-r border-border bg-background">
+    <aside className="w-56 flex flex-col h-full border-r border-border bg-background relative">
       {/* Logo */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center gap-2 px-2 py-1">
@@ -64,28 +65,9 @@ export function Sidebar({ user, activeLabel, onLabelChange, onCompose }: Props) 
         ))}
       </nav>
 
-      {/* User profile */}
-      <div className="p-3 border-t border-border">
-        <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-muted transition-colors group">
-          {user.image ? (
-            <Image src={user.image} alt={user.name} width={28} height={28} className="rounded-full flex-shrink-0" />
-          ) : (
-            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-semibold">
-              {user.name[0]?.toUpperCase()}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-foreground truncate">{user.name}</p>
-            <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
-          </div>
-          <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="p-1 rounded hover:bg-muted-foreground/10 transition-all"
-            title="Sign out"
-          >
-            <LogOut className="w-3.5 h-3.5 text-muted-foreground" />
-          </button>
-        </div>
+      {/* User profile with account switching */}
+      <div className="p-3 border-t border-border relative z-50">
+        <AccountSwitcher onAccountRemoved={onAccountRemoved} />
       </div>
     </aside>
   );

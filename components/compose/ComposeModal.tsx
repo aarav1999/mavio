@@ -52,6 +52,7 @@ export function ComposeModal({ open, onClose, replyTo, initialDraft }: Props) {
         }),
       });
       if (!res.ok) throw new Error('Failed to send');
+      
       toast.success('Email sent!');
       onClose(true);
       setTo(''); setSubject(''); setBody('');

@@ -1,14 +1,71 @@
 {
-  "buildCommand": "npx prisma generate && npm run build",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["iad1"],
-  "functions": {
-    "app/api/**": {
-      "maxDuration": 30
+  "env": {
+    "NEXTAUTH_URL": {
+      "description": "The URL of your deployed app (e.g., https://mavio.vercel.app)"
     },
-    "app/api/ai/**": {
-      "maxDuration": 60
+    "NEXTAUTH_SECRET": {
+      "description": "A random string used to encrypt session tokens. Generate with: openssl rand -base64 32"
+    },
+    "GOOGLE_CLIENT_ID": {
+      "description": "Google OAuth client ID from Google Cloud Console"
+    },
+    "GOOGLE_CLIENT_SECRET": {
+      "description": "Google OAuth client secret from Google Cloud Console"
+    },
+    "AZURE_AD_CLIENT_ID": {
+      "description": "Azure AD client ID from Azure Portal"
+    },
+    "AZURE_AD_CLIENT_SECRET": {
+      "description": "Azure AD client secret from Azure Portal"
+    },
+    "AZURE_AD_TENANT_ID": {
+      "description": "Azure AD tenant ID from Azure Portal"
+    },
+    "GROQ_API_KEY": {
+      "description": "Groq API key from https://console.groq.com/keys"
+    },
+    "HF_API_KEY": {
+      "description": "Hugging Face API key from https://huggingface.co/settings/tokens"
+    },
+    "DATABASE_URL": {
+      "description": "Neon Postgres connection string (pooler URL recommended)"
+    },
+    "DIRECT_URL": {
+      "description": "Neon Postgres direct connection string (for migrations)"
+    },
+    "ENCRYPTION_KEY": {
+      "description": "32-byte hex string for IMAP password encryption. Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
     }
-  }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
 }
