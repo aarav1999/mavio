@@ -37,7 +37,7 @@ export function PatternPanel({ onDismiss }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 rounded-xl p-4 mb-4">
+      <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 rounded-xl p-3 mb-3">
         <div className="animate-pulse flex items-center gap-2">
           <div className="w-4 h-4 bg-violet-500/30 rounded" />
           <div className="h-4 bg-violet-500/30 rounded w-3/4" />
@@ -97,8 +97,8 @@ export function PatternPanel({ onDismiss }: Props) {
             >
               <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{pattern.description}</p>
-                <p className="text-xs opacity-70">{pattern.count} emails involved</p>
+                <p className="text-xs font-medium">{pattern.description}</p>
+                <p className="text-[10px] opacity-70">{pattern.count} emails involved</p>
               </div>
             </div>
           );

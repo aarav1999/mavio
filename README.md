@@ -1,12 +1,30 @@
-# Mavio — AI-First Universal Email Client
+# Mavio - AI-First Email Client
 
-<!-- After pushing to GitHub, replace OWNER/REPO below to enable the badge. -->
-<!-- ![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg) -->
+A production-ready AI-first email client built with Next.js 15, featuring explainable AI insights, smart replies, and intelligent prioritization.
 
-A mobile-ready PWA email client that unifies Gmail, Office 365, and IMAP (Yahoo / AOL / iCloud / custom) under one inbox, with AI summaries, smart reply drafts, priority triage, pattern detection, and folder suggestions.
+## Mobile UX Improvements
 
-> **Live demo:** https://mavio.vercel.app
-> Built with Next.js 15 · Prisma + Neon Postgres (pgvector) · Groq Llama 3.3 70B · Hugging Face embeddings · Vercel.
+The application includes mobile-first spacing optimizations to improve the AI showcase visibility on mobile devices:
+- Reduced vertical spacing on login page to make AI ProductPreview visible above the fold
+- Compact padding on AI panels (AIPanel, PatternPanel, FolderSuggestions) for better mobile information hierarchy
+- Improved viewport handling on mobile browsers using `85dvh` for compose modal
+- Touch targets maintained at minimum 44px for usability
+
+## OAuth Redirect URI Configuration
+
+**Critical for Vercel Deployment:**
+
+When deploying to Vercel, you must update the OAuth redirect URIs in your provider consoles:
+
+1. **Google Cloud Console** (https://console.cloud.google.com/apis/credentials)
+   - Add your Vercel URL (e.g., `https://mavio.vercel.app/api/auth/callback/google`) to Authorized redirect URIs
+
+2. **Azure AD App Registration** (https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
+   - Add your Vercel URL (e.g., `https://mavio.vercel.app/api/auth/callback/azure-ad`) to Redirect URIs
+
+3. **Vercel Environment Variables**
+   - Set `NEXT_PUBLIC_APP_URL` to your deployed Vercel URL (e.g., `https://mavio.vercel.app`)
+   - Set `NEXTAUTH_URL` to your deployed Vercel URL
 
 ---
 

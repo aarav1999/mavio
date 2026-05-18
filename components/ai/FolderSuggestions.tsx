@@ -61,7 +61,7 @@ export function FolderSuggestions({ onDismiss }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-4 mb-4">
+      <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-3 mb-3">
         <div className="animate-pulse flex items-center gap-2">
           <div className="w-4 h-4 bg-amber-500/30 rounded" />
           <div className="h-4 bg-amber-500/30 rounded w-3/4" />
@@ -85,7 +85,7 @@ export function FolderSuggestions({ onDismiss }: Props) {
   };
 
   return (
-    <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-4 mb-4">
+    <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-3 mb-3">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-amber-500" />
@@ -108,12 +108,12 @@ export function FolderSuggestions({ onDismiss }: Props) {
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <Folder className="w-4 h-4 text-amber-500 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-xs font-medium text-foreground">
                   {getActionLabel(suggestion.action)} <span className="text-amber-500">{suggestion.target}</span>
                 </p>
-                <p className="text-xs text-muted-foreground">{suggestion.reason}</p>
+                <p className="text-[10px] text-muted-foreground">{suggestion.reason}</p>
               </div>
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded">
                 {suggestion.count} emails
               </span>
             </div>

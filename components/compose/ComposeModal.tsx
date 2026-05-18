@@ -66,11 +66,15 @@ export function ComposeModal({ open, onClose, replyTo, initialDraft }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-full max-w-md sm:max-w-lg">
-      <div className={cn(
-        'bg-card border border-border rounded-2xl shadow-2xl overflow-hidden transition-all duration-200',
-        minimized ? 'h-12' : 'h-[520px] max-h-[90vh]'
-      )}>
+    <div
+      className="fixed bottom-4 right-4 w-full max-w-md max-h-[85dvh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-50"
+    >
+      <div
+        className={cn(
+          'shadow-2xl overflow-hidden transition-all duration-200',
+          minimized ? 'h-12' : 'h-[520px] max-h-[90vh]'
+        )}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b border-border">
           <span className="text-sm font-medium text-foreground">

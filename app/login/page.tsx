@@ -35,7 +35,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50/30 via-white to-purple-50/20 flex flex-col lg:flex-row items-center justify-center px-4 lg:px-8 py-8 lg:py-12 gap-8 lg:gap-16">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50/30 via-white to-purple-50/20 flex flex-col lg:flex-row items-center justify-center px-4 lg:px-6 py-6 lg:py-8 gap-8 lg:gap-16">
       {/* Background gradient */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-violet-200/20 rounded-full blur-3xl" />
@@ -43,9 +43,9 @@ export default function LoginPage() {
       </div>
 
       {/* Left section - Login form */}
-      <div className="relative w-full max-w-md lg:max-w-lg space-y-6 lg:space-y-8">
+      <div className="relative w-full max-w-md lg:max-w-lg space-y-4 lg:space-y-6">
         {/* Logo */}
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-14 h-14 lg:w-16 lg:h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 border border-violet-400/20 shadow-lg shadow-violet-500/20">
             <Mail className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
           </div>
@@ -66,7 +66,7 @@ export default function LoginPage() {
           ].map(({ icon: Icon, label }) => (
             <span
               key={label}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-50 border border-violet-100 text-violet-700 text-xs font-medium shadow-sm"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-50 border border-violet-100 text-violet-700 text-xs font-medium shadow-sm"
             >
               <Icon className="w-3 h-3" />
               {label}
@@ -75,7 +75,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login card */}
-        <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-2xl shadow-xl shadow-gray-200/50 p-5 lg:p-6 space-y-4">
+        <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-2xl shadow-xl shadow-gray-200/50 p-4 lg:p-5 space-y-4">
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-gray-900">Connect your inbox</h2>
             <p className="text-xs text-gray-500">Gmail, Outlook, Yahoo, AOL, and IMAP accounts supported</p>
