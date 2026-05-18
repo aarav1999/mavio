@@ -1,20 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit: 10 login attempts per minute per IP
+    const clientIP = getClientIP(req.headers);
+    const rateLimit = await checkRateLimit(clientIP, {
+      limit: 10,
+      windowSeconds: 60,
+      prefix: 'ratelimit:login:',
+    });
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.resetSeconds),
+            'X-RateLimit-Limit': String(rateLimit.limit),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
+
     const { provider } = await req.json();
-    console.log('[login API] Provider:', provider);
     
     if (!provider || (provider !== 'google' && provider !== 'azure-ad')) {
-      console.error('[login API] Invalid provider:', provider);
       return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
     }
     
     // Generate state for CSRF protection
     const state = crypto.randomBytes(32).toString('hex');
-    console.log('[login API] Generated state:', state);
     
     // Set state cookie
     const cookieStore = await cookies();
@@ -28,7 +48,6 @@ export async function POST(req: NextRequest) {
     // Generate authorization URL
     let authUrl: string;
     const redirectUri = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/callback/${provider}`;
-    console.log('[login API] Redirect URI:', redirectUri);
     
     if (provider === 'google') {
       const params = new URLSearchParams({
@@ -41,7 +60,6 @@ export async function POST(req: NextRequest) {
         prompt: 'consent select_account',
       });
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-      console.log('[login API] Google auth URL generated:', authUrl);
     } else if (provider === 'azure-ad') {
       const params = new URLSearchParams({
         client_id: process.env.AZURE_AD_CLIENT_ID || '',
@@ -52,12 +70,10 @@ export async function POST(req: NextRequest) {
         response_mode: 'query',
       });
       authUrl = `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID || 'common'}/oauth2/v2.0/authorize?${params.toString()}`;
-      console.log('[login API] Azure AD auth URL generated:', authUrl);
     } else {
       return NextResponse.json({ error: 'Invalid provider' }, { status: 400 });
     }
     
-    console.log('[login API] Returning authUrl:', authUrl);
     return NextResponse.json({ authUrl });
   } catch (error) {
     console.error('[login API] Error:', error);

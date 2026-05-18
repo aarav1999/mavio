@@ -5,6 +5,7 @@ import { encrypt } from '@/lib/encryption';
 import { IMAP_PRESETS } from '@/lib/imap-presets';
 import { ProviderFactory } from '@/lib/providers/factory';
 import { ImapProvider, IMAPEnvelopeThread } from '@/lib/providers/imap';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -29,6 +30,26 @@ interface CreateBody {
  * envelope-only initial sync (fast onboarding; bodies fetched on demand).
  */
 export async function POST(req: NextRequest) {
+  // Rate limit: 5 IMAP account creation attempts per minute per IP
+  const clientIP = getClientIP(req.headers);
+  const rateLimit = await checkRateLimit(clientIP, {
+    limit: 5,
+    windowSeconds: 60,
+    prefix: 'ratelimit:imap:',
+  });
+  
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimit.resetSeconds),
+        },
+      }
+    );
+  }
+
   const session = await getSessionFromRequest(req);
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

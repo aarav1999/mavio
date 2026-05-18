@@ -52,8 +52,6 @@ export async function GET(req: NextRequest) {
           console.error('[Azure AD callback] Session user not found in database:', existingSession.user.id);
           // Fallback: create new user if session user not found
           user = await getOrCreateUser(userInfo.email, userInfo.name);
-        } else {
-          console.log('[Azure AD callback] Linking account to existing user:', user.id, user.email);
         }
       } else {
         console.error('[Azure AD callback] Session invalid or expired');
@@ -61,7 +59,6 @@ export async function GET(req: NextRequest) {
         user = await getOrCreateUser(userInfo.email, userInfo.name);
       }
     } else {
-      console.log('[Azure AD callback] No existing session, creating new user');
       // No session, create new user
       user = await getOrCreateUser(userInfo.email, userInfo.name);
     }
@@ -83,9 +80,6 @@ export async function GET(req: NextRequest) {
     let sessionToken = existingSessionToken;
     if (!sessionToken) {
       sessionToken = await createSession(user.id);
-      console.log('[Azure AD callback] Created new session:', sessionToken);
-    } else {
-      console.log('[Azure AD callback] Keeping existing session:', sessionToken);
     }
     
     // Set session cookie only if we created a new one

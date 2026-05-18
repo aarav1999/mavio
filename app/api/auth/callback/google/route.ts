@@ -35,9 +35,6 @@ export async function GET(req: NextRequest) {
     // Exchange code for tokens
     const tokens = await exchangeGoogleCode(code);
     
-    // Log granted scopes for debugging
-    console.log('[Google callback] Token scopes:', tokens.scope);
-    console.log('[Google callback] Has gmail.modify:', tokens.scope?.includes('gmail.modify'));
     
     // Extract user info from ID token
     const userInfo = getGoogleUserInfo(tokens.id_token);
@@ -56,8 +53,6 @@ export async function GET(req: NextRequest) {
           console.error('[Google callback] Session user not found in database:', existingSession.user.id);
           // Fallback: create new user if session user not found
           user = await getOrCreateUser(userInfo.email, userInfo.name, userInfo.picture);
-        } else {
-          console.log('[Google callback] Linking account to existing user:', user.id, user.email);
         }
       } else {
         console.error('[Google callback] Session invalid or expired');
@@ -65,7 +60,6 @@ export async function GET(req: NextRequest) {
         user = await getOrCreateUser(userInfo.email, userInfo.name, userInfo.picture);
       }
     } else {
-      console.log('[Google callback] No existing session, creating new user');
       // No session, create new user
       user = await getOrCreateUser(userInfo.email, userInfo.name, userInfo.picture);
     }
@@ -87,9 +81,6 @@ export async function GET(req: NextRequest) {
     let sessionToken = existingSessionToken;
     if (!sessionToken) {
       sessionToken = await createSession(user.id);
-      console.log('[Google callback] Created new session:', sessionToken);
-    } else {
-      console.log('[Google callback] Keeping existing session:', sessionToken);
     }
     
     // Set session cookie only if we created a new one

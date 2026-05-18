@@ -93,9 +93,7 @@ export async function refreshAzureADToken(refreshToken: string): Promise<{
     throw new Error('Failed to refresh Azure AD token');
   }
 
-  const tokens = await res.json();
-  console.log('[OAuth] Azure AD token refresh successful, access_token length:', tokens.access_token?.length);
-  return tokens;
+  return await res.json();
 }
 
 // Get valid access token for an account (refresh if expired)
@@ -114,7 +112,6 @@ export async function getValidAccessToken(account: any): Promise<string> {
     return account.access_token;
   }
   
-  console.log('[OAuth] Refreshing expired token for account:', account.id);
   const newTokens = await refreshAzureADToken(account.refresh_token);
   
   // Update account with new tokens
@@ -157,9 +154,7 @@ export async function exchangeAzureADCode(code: string): Promise<{
     throw new Error('Failed to exchange Azure AD code');
   }
 
-  const tokens = await res.json();
-  console.log('[OAuth] Azure AD token exchange successful, access_token length:', tokens.access_token?.length);
-  return tokens;
+  return await res.json();
 }
 
 // Get user info from Google ID token
@@ -243,7 +238,6 @@ export async function createOrUpdateOAuthAccount(data: {
   if (existingAccount) {
     // If the account exists but belongs to a different user, delete it and create a new one
     if (existingAccount.userId !== data.userId) {
-      console.log(`[OAuth] Deleting existing ${data.provider} account from old user ${existingAccount.userId} and creating for new user ${data.userId}`);
       // Delete ALL email records for the old user to avoid foreign key constraint issues
       // Use raw SQL to delete by userId
       await db.$executeRaw`DELETE FROM "Email" WHERE "userId" = ${existingAccount.userId}`;

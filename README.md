@@ -10,37 +10,16 @@ A mobile-ready PWA email client that unifies Gmail, Office 365, and IMAP (Yahoo 
 
 ---
 
-## Quick Start
-
-### Deploy to Vercel
-
-1. Push this repository to GitHub
-2. Import on Vercel
-3. Configure environment variables (see below)
-4. Deploy
-
-### Local Development
-
-```bash
-npm install
-cp .env.example .env.local       # then fill in keys (see below)
-npx prisma generate
-npx prisma db push               # push schema to Neon
-npm run dev                      # http://localhost:3000
-```
-
----
-
 ## Deliverables (per the brief)
 
 | Deliverable | Location |
 |---|---|
 | Live Vercel URL | https://mavio.vercel.app |
-| `CLAUDE.md` | [`docs/CLAUDE.md`](docs/CLAUDE.md) (project context) and [`CLAUDE.md`](CLAUDE.md) (code-side rules) |
+| `CLAUDE.md` | [`docs/CLAUDE.md`](docs/CLAUDE.md) (project context) and [`frontend/CLAUDE.md`](frontend/CLAUDE.md) (code-side rules) |
 | One-page architecture doc | [`docs/architecture.md`](docs/architecture.md) |
 | List of agents / skills / hooks / plugins | [`docs/AGENTS_SKILLS_HOOKS_PLUGINS.md`](docs/AGENTS_SKILLS_HOOKS_PLUGINS.md) |
 | Workflow writeup | [`docs/agent-workflow.md`](docs/agent-workflow.md) |
-| Automated tests | `{agents,skills,lib}/__tests__/` (Jest, 75 tests in 14 suites) |
+| Automated tests | `frontend/{agents,skills,lib}/__tests__/` (Jest, 75 tests in 14 suites) + `frontend/e2e/` (Playwright) |
 | CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — lint + `tsc --noEmit` + Jest |
 
 ---
@@ -88,14 +67,15 @@ npm run dev                      # http://localhost:3000
 │   ├── agent-workflow.md           — workflow writeup
 │   ├── AGENTS_SKILLS_HOOKS_PLUGINS.md
 │   └── screenshots/
-├── app/                            — routes + API handlers
-├── agents/                         — 7 AI agents (Groq prompts)
-├── skills/                         — 5 reusable pure functions
-├── hooks/                          — 3 lifecycle hooks + UI keyboard hook
-├── plugins/                        — 3 EmailProvider plugins (Gmail / Outlook / IMAP)
-├── components/                     — React UI
-├── lib/                            — providers, orchestrator, ai, oauth, encryption, db
-└── prisma/schema.prisma
+└── frontend/                       — the Next.js app (Vercel root directory)
+    ├── app/                        — routes + API handlers
+    ├── agents/                     — 7 AI agents (Groq prompts)
+    ├── skills/                     — 5 reusable pure functions
+    ├── hooks/                      — 3 lifecycle hooks + UI keyboard hook
+    ├── plugins/                    — 3 EmailProvider plugins (Gmail / Outlook / IMAP)
+    ├── components/                 — React UI
+    ├── lib/                        — providers, orchestrator, ai, oauth, encryption, db
+    └── prisma/schema.prisma
 ```
 
 ---
@@ -178,7 +158,7 @@ CI runs all of these on every push and pull request.
 ## Deploy to Vercel
 
 1. Push the repo to GitHub.
-2. Import on Vercel.
+2. Import on Vercel; **root directory = `frontend`**.
 3. Paste the same env vars from `.env.local`.
 4. Add the deployed Vercel URL to the Google OAuth + Azure AD authorised redirect URIs.
 5. Set `NEXTAUTH_URL` to your Vercel URL.

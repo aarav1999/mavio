@@ -17,8 +17,6 @@ export type EmailCallback = (email: Email) => Promise<void> | void;
  * @param callback - Function to execute when email is received
  */
 export async function onEmailReceived(email: Email, callback?: EmailCallback): Promise<void> {
-  console.log('[Hook] Email received:', email.id, email.subject);
-  
   if (callback) {
     await callback(email);
   }

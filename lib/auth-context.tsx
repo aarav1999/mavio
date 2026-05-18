@@ -68,19 +68,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (provider: string) => {
-    console.log('[Auth] signIn called with provider:', provider);
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ provider }),
     });
     const data = await res.json();
-    console.log('[Auth] Login API response:', data);
     if (data.authUrl) {
-      console.log('[Auth] Redirecting to authUrl:', data.authUrl);
       window.location.href = data.authUrl;
-    } else {
-      console.error('[Auth] No authUrl in response:', data);
     }
   };
 

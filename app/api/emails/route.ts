@@ -6,6 +6,12 @@ import { OutlookProvider } from '@/lib/providers/outlook';
 import { gmailPlugin } from '@/plugins/gmail-plugin';
 import { parseEmailHeaders } from '@/skills/parse-email';
 import { getValidAccessToken } from '@/lib/oauth';
+import { 
+  fetchArchivedEmailsFromDB, 
+  sortAndDeduplicateEmails,
+  parseGmailLabelQuery,
+  GMAIL_LABEL_MAP,
+} from '@/lib/email-helpers';
 
 export async function GET(req: NextRequest) {
   const session = await getSessionFromRequest(req);
@@ -358,17 +364,8 @@ export async function GET(req: NextRequest) {
       }
     }));
 
-    // Sort by received date
-    allEmails.sort((a, b) => {
-      const dateA = new Date(a.receivedAt).getTime();
-      const dateB = new Date(b.receivedAt).getTime();
-      return dateB - dateA;
-    });
-
-    // Deduplicate emails by ID to prevent React key conflicts
-    const uniqueEmails = Array.from(
-      new Map(allEmails.map(email => [email.id, email])).values()
-    );
+    // Sort and deduplicate
+    const uniqueEmails = sortAndDeduplicateEmails(allEmails);
 
     return NextResponse.json({ 
       emails: uniqueEmails.slice(0, maxResults), 
@@ -580,19 +577,8 @@ export async function GET(req: NextRequest) {
       allEmails = [...allEmails, ...decorated];
     }
 
-    // Sort all emails by receivedAt (newest first)
-    allEmails.sort((a, b) => {
-      const dateA = new Date(a.receivedAt).getTime();
-      const dateB = new Date(b.receivedAt).getTime();
-      return dateB - dateA;
-    });
-
-    // Deduplicate emails by ID to prevent React key conflicts
-    const uniqueEmails = Array.from(
-      new Map(allEmails.map(email => [email.id, email])).values()
-    );
-
-    // Limit results to maxResults
+    // Sort and deduplicate
+    const uniqueEmails = sortAndDeduplicateEmails(allEmails);
     const finalEmails = uniqueEmails.slice(0, maxResults);
 
     return NextResponse.json({ 
@@ -603,12 +589,4 @@ export async function GET(req: NextRequest) {
     console.error('[emails API] Error:', err);
     return NextResponse.json({ error: err.message || 'Failed to load emails' }, { status: 500 });
   }
-}
-
-// Helper function for unique constraint
-function userId_gmailId(provider: string, userId: string, id: string) {
-  if (provider === 'google') {
-    return { userId, gmailId: id };
-  }
-  return { userId, outlookId: id };
 }

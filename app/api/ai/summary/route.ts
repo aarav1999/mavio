@@ -42,15 +42,12 @@ export async function POST(req: NextRequest) {
 
     // Generate priority analysis
     const priorityResult = await PrioritizerAgent.run(subject ?? '', fromEmail ?? '', body ?? subject ?? '');
-    console.log('[ai/summary] Priority result:', priorityResult);
 
     // Generate category classification
     const category = await ClassifierAgent.run(subject ?? '', fromEmail ?? '', body ?? '');
-    console.log('[ai/summary] Category:', category);
 
     // Assess confidence
     const confidence = await PrioritizerAgent.assessConfidence(subject ?? '', body ?? '');
-    console.log('[ai/summary] Confidence:', confidence);
 
     // Generate actions
     const actions = await extractActions(subject ?? '', body ?? '');

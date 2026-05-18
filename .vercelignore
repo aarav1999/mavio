@@ -12,12 +12,12 @@ __tests__
 *.test.tsx
 *.spec.ts
 *.spec.tsx
+e2e
 
 # Misc
 .DS_Store
 *.pem
 .env*.local
-.env.example
 .env
 .vercel
 
@@ -34,3 +34,6 @@ build
 
 # Prisma
 prisma/migrations
+
+# TypeScript build info
+*.tsbuildinfo

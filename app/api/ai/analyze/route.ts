@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Per-user daily AI quota — protects the shared Groq key from runaway use.
-  const quota = consumeQuota(session.user.id);
+  const quota = await consumeQuota(session.user.id);
   if (!quota.allowed) {
     return NextResponse.json(
       { error: 'Daily AI quota exceeded. Try again tomorrow.' },

@@ -33,11 +33,7 @@ export default function AddAccountPage() {
   });
 
   const handleSignIn = async (provider: 'google' | 'azure-ad') => {
-    if (loadingProvider) {
-      console.log('[AddAccount] Already linking, ignoring click for:', provider);
-      return;
-    }
-    console.log('[AddAccount] Starting sign in for:', provider);
+    if (loadingProvider) return;
     try {
       setLoadingProvider(provider);
       await signIn(provider);
@@ -102,12 +98,9 @@ export default function AddAccountPage() {
         }),
       });
 
-      console.log('[AddAccount IMAP] Validation response status:', validateRes.status);
-
       if (!validateRes.ok) {
         const data = await validateRes.json().catch(() => ({}));
         const msg = data.error || 'Connection validation failed';
-        console.error('[AddAccount IMAP] Validation failed:', msg);
         setImapError(msg);
         toast.error(msg);
         setImapStep('credentials');

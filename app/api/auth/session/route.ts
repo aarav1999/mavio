@@ -8,18 +8,15 @@ export async function GET(req: NextRequest) {
     const sessionToken = cookieStore.get('session_token')?.value;
     
     if (!sessionToken) {
-      console.log('[session API] No session token found');
       return NextResponse.json({ session: null });
     }
     
     const session = await getSession(sessionToken);
     
     if (!session) {
-      console.log('[session API] Session not found for token:', sessionToken);
       return NextResponse.json({ session: null });
     }
     
-    console.log('[session API] Session found for user:', session.user.id, session.user.email);
     
     // Fetch accounts for the session (including IMAP)
     const { db } = await import('@/lib/db');
@@ -31,7 +28,6 @@ export async function GET(req: NextRequest) {
       orderBy: { id: 'desc' },
     });
 
-    console.log('[session API] Found accounts for user:', accounts.length, accounts.map(a => ({ id: a.id, provider: a.provider, providerAccountId: a.providerAccountId, email: a.email, name: a.name })));
 
     return NextResponse.json({
       session: {

@@ -16,8 +16,6 @@ export type AnalysisCallback = (result: AnalysisResult) => Promise<void> | void;
  * @param callback - Function to execute when analysis completes
  */
 export async function onAnalysisComplete(result: AnalysisResult, callback?: AnalysisCallback): Promise<void> {
-  console.log('[Hook] AI analysis complete:', result.priorityLabel, result.priorityScore);
-  
   if (callback) {
     await callback(result);
   }

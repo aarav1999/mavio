@@ -14,8 +14,6 @@ export type ReplyCallback = (reply: ReplyDraft) => Promise<void> | void;
  * @param callback - Function to execute when reply is generated
  */
 export async function onReplyGenerated(reply: ReplyDraft, callback?: ReplyCallback): Promise<void> {
-  console.log('[Hook] Reply generated:', reply.tone, reply.subject);
-  
   if (callback) {
     await callback(reply);
   }
