@@ -100,20 +100,20 @@ When deploying to Vercel, you must update the OAuth redirect URIs in your provid
 
 ## Screenshots
 
-### Inbox + AI insights
-![Inbox](docs/screenshots/inbox.png)
+### Unified inbox + AI insights
+![Unified inbox](docs/screenshots/unified_inbox.png)
 
-### AI panel — summary + priority + factors
-![AI panel](docs/screenshots/ai-panel.png)
+### AI insight panel
+![AI insight](docs/screenshots/AI_insight.png)
 
 ### Smart reply drafts (3 tones)
-![Smart replies](docs/screenshots/smart-replies.png)
+![Smart replies](docs/screenshots/smart_replies.png)
 
-### Account switcher across providers
-![Account switcher](docs/screenshots/account-switcher.png)
+### Add account flow
+![Add account](docs/screenshots/add_account.png)
 
 ### Mobile responsive view
-![Mobile UI](docs/screenshots/mobile-ui.png)
+![Mobile view](docs/screenshots/mobile_view.png)
 
 ---
 
