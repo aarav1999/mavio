@@ -13,7 +13,7 @@ import { PatternPanel } from '@/components/ai/PatternPanel';
 import { FolderSuggestions } from '@/components/ai/FolderSuggestions';
 import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
 import { KeyboardHelp } from '@/components/KeyboardHelp';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
 import { useAccounts as useSWRAccounts } from '@/lib/hooks/useAccounts';
 import { useAccounts } from '@/components/providers/AccountProvider';
 import { PenSquare, RefreshCw } from 'lucide-react';
@@ -45,6 +45,10 @@ export function InboxClient({ user }: InboxClientProps) {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullStartY, setPullStartY] = useState<number | null>(null);
+  const PULL_THRESHOLD = 70;
   const { activeAccountId } = useAccounts(); // For active account selection
   const { accounts } = useSWRAccounts(); // For account list via SWR
 
@@ -68,7 +72,11 @@ export function InboxClient({ user }: InboxClientProps) {
         setEmails(data.emails ?? []);
         setNextPageToken(data.nextPageToken);
       } else {
-        setEmails((prev) => [...prev, ...(data.emails ?? [])]);
+        setEmails((prev) => {
+          const existingIds = new Set(prev.map((e: EmailWithAI) => e.id));
+          const newEmails = (data.emails ?? []).filter((e: EmailWithAI) => !existingIds.has(e.id));
+          return [...prev, ...newEmails];
+        });
         setNextPageToken(data.nextPageToken);
       }
     } catch (err: any) {
@@ -120,6 +128,38 @@ export function InboxClient({ user }: InboxClientProps) {
     };
     checkOnboarding();
   }, []);
+
+  // Pull-to-refresh handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.currentTarget as HTMLElement;
+    if (target.scrollTop === 0) {
+      setPullStartY(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (pullStartY === null || isRefreshing) return;
+    const delta = e.touches[0].clientY - pullStartY;
+    if (delta > 0) {
+      setPullDistance(Math.min(delta * 0.4, 80));
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (pullDistance >= PULL_THRESHOLD) {
+      setIsRefreshing(true);
+      setPullDistance(0);
+      setPullStartY(null);
+      try {
+        await fetchEmails(activeLabel, true, activeAccountId);
+      } finally {
+        setIsRefreshing(false);
+      }
+    } else {
+      setPullDistance(0);
+      setPullStartY(null);
+    }
+  };
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -305,10 +345,9 @@ export function InboxClient({ user }: InboxClientProps) {
           </button>
           <button
             onClick={() => setComposeOpen(true)}
-            className="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="md:hidden flex items-center justify-center px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             <PenSquare className="w-3.5 h-3.5" />
-            Compose
           </button>
         </div>
 
@@ -316,26 +355,49 @@ export function InboxClient({ user }: InboxClientProps) {
         <div className="flex flex-1 min-h-0">
           {/* Email list */}
           <div className={`flex flex-col ${selectedEmail ? 'hidden md:flex md:w-[45%]' : 'flex-1'} border-r border-border`}>
-            {/* AI Insights Panels */}
-            <div className="p-4 space-y-4">
-              {showPatterns && (
-                <PatternPanel onDismiss={() => setShowPatterns(false)} />
+            <div
+              className="md:contents"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {/* Pull-to-refresh indicator — mobile only */}
+              {(pullDistance > 0 || isRefreshing) && (
+                <div
+                  className="flex items-center justify-center text-sm text-muted-foreground transition-all duration-150 md:hidden"
+                  style={{ height: isRefreshing ? 44 : pullDistance }}
+                >
+                  {isRefreshing ? (
+                    <span className="animate-spin mr-2">↻</span>
+                  ) : pullDistance >= PULL_THRESHOLD ? (
+                    '↑ Release to refresh'
+                  ) : (
+                    '↓ Pull to refresh'
+                  )}
+                </div>
               )}
-              {showSuggestions && (
-                <FolderSuggestions onDismiss={() => setShowSuggestions(false)} />
-              )}
-            </div>
 
-            <EmailList
-              emails={emails}
-              loading={loading}
-              selectedId={selectedEmail?.id}
-              onSelect={setSelectedEmail}
-              onLoadMore={handleLoadMore}
-              hasMore={!!nextPageToken}
-              loadingMore={loadingMore}
-              onAction={handleEmailAction}
-            />
+              {/* AI Insights Panels */}
+              <div className="p-4 space-y-4">
+                {showPatterns && (
+                  <PatternPanel onDismiss={() => setShowPatterns(false)} />
+                )}
+                {showSuggestions && (
+                  <FolderSuggestions onDismiss={() => setShowSuggestions(false)} />
+                )}
+              </div>
+
+              <EmailList
+                emails={emails}
+                loading={loading}
+                selectedId={selectedEmail?.id}
+                onSelect={setSelectedEmail}
+                onLoadMore={handleLoadMore}
+                hasMore={!!nextPageToken}
+                loadingMore={loadingMore}
+                onAction={handleEmailAction}
+              />
+            </div>
           </div>
 
           {/* Email detail */}

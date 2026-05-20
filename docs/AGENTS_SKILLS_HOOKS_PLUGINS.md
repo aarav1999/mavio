@@ -2,7 +2,7 @@
 
 The required deliverable: every Agent OS component with its file path, inputs/outputs, and current status.
 
-All seven agents share a single `Groq` client (`llama-3.3-70b-versatile`) and live in `frontend/agents/`. All paths below are relative to `frontend/`.
+All seven agents share a single `Groq` client via `getGroqClient()` from `lib/ai/groq.ts` and live in `agents/`. All paths below are relative to the repo root.
 
 ---
 
@@ -63,7 +63,7 @@ All seven agents share a single `Groq` client (`llama-3.3-70b-versatile`) and li
 
 ## Skills (5)
 
-Skills are pure functions reused across agents and routes. They live in `frontend/skills/`.
+Skills are pure functions reused across agents and routes. They live in `skills/`.
 
 | Skill | File | Purpose |
 |---|---|---|
@@ -77,9 +77,9 @@ Tests: `skills/__tests__/detect-urgency.test.ts`. The other skills are exercised
 
 ---
 
-## Hooks (3)
+## Hooks (4)
 
-Hooks are simple async functions in `frontend/hooks/`. Today they implement **instrumentation** (console log + optional callback). They are deliberately not an event bus — that would be over-engineering at MVP scope. Their value is providing a stable seam for future integrations (push notifications, audit log, webhooks).
+Hooks are simple async functions in `hooks/`. Today lifecycle hooks implement **instrumentation** (console log + optional callback). They are deliberately not an event bus — that would be over-engineering at MVP scope. Their value is providing a stable seam for future integrations (push notifications, audit log, webhooks).
 
 | Hook | File | Trigger | Today | Future seam |
 |---|---|---|---|---|
@@ -87,13 +87,13 @@ Hooks are simple async functions in `frontend/hooks/`. Today they implement **in
 | `onAnalysisComplete` | `hooks/on-analysis-complete.ts` | After all agents finish in `processEmail` | `console.log` + callback | Push notification on `urgent` label, audit log |
 | `onReplyGenerated` | `hooks/on-reply-generated.ts` | Once per drafted reply | `console.log` + callback | Reply analytics, learning loop |
 
-Plus one UI hook: `hooks/useKeyboardShortcuts.ts` — registers j/k navigation, `e` archive, `r` reply, `c` compose, `?` help, `s` star, `del` delete. Wired in `components/inbox/InboxClient.tsx`.
+Plus one UI hook: `lib/hooks/useKeyboardShortcuts.ts` — registers j/k navigation, `e` archive, `r` reply, `c` compose, `?` help, `s` star, `del` delete. Wired in `components/inbox/InboxClient.tsx`.
 
 ---
 
 ## Plugins (3)
 
-All three plugins are **real, working, and used in production routes**. They live in `frontend/plugins/` and `implements EmailProvider` (interface in `frontend/lib/providers/interface.ts`). The plugin classes wrap concrete provider implementations in `frontend/lib/providers/` and add metadata for uniform listing.
+All three plugins are **real, working, and used in production routes**. They live in `plugins/` and `implements EmailProvider` (interface in `lib/providers/interface.ts`). The plugin classes wrap concrete provider implementations in `lib/providers/` and add metadata for uniform listing.
 
 ### `GmailPlugin` — `plugins/gmail-plugin.ts`
 - **Auth:** Google OAuth (refresh tokens stored in `Account` row).
@@ -117,7 +117,7 @@ All three plugins are **real, working, and used in production routes**. They liv
   - `getThread` fetches full source on demand and parses with `mailparser`.
   - `sendEmail` uses SMTP via `nodemailer`.
   - `markRead`/`markUnread` flip the `\Seen` flag.
-  - **`archive`, `trash`, `star`, `searchEmails` throw at the IMAP layer by design.** IMAP folder semantics vary too widely across servers (Yahoo "Archive" vs. Gmail "[Gmail]/All Mail" vs. custom). For MVP these are handled DB-side: archive/trash flip a boolean on the `Email` row; search runs against the normalized DB; starring is DB-side only. This tradeoff is documented inline at `lib/providers/imap.ts:222-244`.
+  - **`archive`, `trash`, `star`, `searchEmails` throw at the IMAP layer by design.** IMAP folder semantics vary too widely across servers (Yahoo "Archive" vs. Gmail "[Gmail]/All Mail" vs. custom). For MVP these are handled DB-side: archive/trash flip a boolean on the `Email` row; search runs against the normalized DB; starring is DB-side only. This tradeoff is documented inline at `lib/providers/imap.ts:296-318`.
 - **Convenience constructors:** `ImapPlugin.fromPreset('yahoo'|'aol'|'icloud'|'gmail'|'zoho', user, password)` and `ImapPlugin.fromCustom(config)`.
 - **Used by:** `app/api/accounts/imap/route.ts` (onboarding), `app/api/emails/route.ts` (DB-first read).
 
@@ -125,12 +125,12 @@ All three plugins are **real, working, and used in production routes**. They liv
 
 ## Orchestrator
 
-`frontend/lib/orchestrator.ts`
+`lib/orchestrator.ts`
 
 ```ts
 processEmail(email) →
-  onEmailReceived → ClassifierAgent → PrioritizerAgent → SummarizerAgent
-                  → assessConfidence → DrafterAgent → ValidationAgent
+  onEmailReceived → [ClassifierAgent, SummarizerAgent, DrafterAgent] (parallel)
+                  → PrioritizerAgent → assessConfidence → ValidationAgent
                   → onAnalysisComplete → onReplyGenerated × 3
 ```
 
@@ -152,12 +152,12 @@ POST /api/ai/analyze          →  Orchestrator (full pipeline) → cache to Ema
 POST /api/ai/patterns         →  PatternDetectorAgent
 POST /api/ai/folder-suggestions →  FolderSuggestionAgent
 POST /api/emails/send         →  Plugin.sendEmail
-POST /api/emails/semantic-search →  pgvector cosine sim against Email embeddings
+POST /api/emails/semantic-search →  pgvector cosine sim against Email embeddings (graceful fallback to keyword search when column unavailable)
 ```
 
 ## Counts
 
 - Agents: **7**
 - Skills: **5**
-- Hooks: **3** lifecycle + 1 UI keyboard hook
+- Hooks: **4** (3 lifecycle + 1 UI keyboard hook)
 - Plugins: **3**, all `implements EmailProvider`, all in production use

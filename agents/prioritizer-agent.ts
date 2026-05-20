@@ -1,14 +1,10 @@
-import Groq from 'groq-sdk';
+import { getGroqClient } from '@/lib/ai/groq';
 import { PriorityLabel } from '@/types/email';
 
 const MODEL = 'llama-3.3-70b-versatile';
 
-function getClient(): Groq {
-  return new Groq({ apiKey: process.env.GROQ_API_KEY! });
-}
-
 async function generate(prompt: string): Promise<string> {
-  const groq = getClient();
+  const groq = getGroqClient();
   const res = await groq.chat.completions.create({
     model: MODEL,
     messages: [{ role: 'user', content: prompt }],

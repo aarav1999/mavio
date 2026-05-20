@@ -42,21 +42,26 @@ export interface ProcessedEmail {
 
 /**
  * Simple orchestrator function that coordinates AI agents to process an email.
- * No complex orchestration or distributed systems - just sequential agent calls.
+ * No complex orchestration or distributed systems - independent agents run in parallel.
  * 
- * This is the core "multi-agent" workflow - agents run sequentially to analyze email.
+ * This is the core "multi-agent" workflow - Classifier, Summarizer, and Drafter run
+ * in parallel (no inter-dependencies), while Prioritizer and Validation run sequentially.
  */
 export async function processEmail(email: EmailInput): Promise<ProcessedEmail> {
 
   // Trigger email received hook
   await onEmailReceived(email);
 
-  // Run agents sequentially (no parallel execution for simplicity)
-  const classification = await ClassifierAgent.run(email.subject, email.fromEmail, email.body);
+  // Run independent agents in parallel for performance
+  const [classification, summary, replies] = await Promise.all([
+    ClassifierAgent.run(email.subject, email.fromEmail, email.body),
+    SummarizerAgent.run(email.subject, email.body),
+    DrafterAgent.run(email.subject, email.body),
+  ]);
+
+  // Run dependent agents sequentially
   const priority = await PrioritizerAgent.run(email.subject, email.fromEmail, email.snippet);
-  const summary = await SummarizerAgent.run(email.subject, email.body);
   const confidence = await PrioritizerAgent.assessConfidence(email.subject, email.body);
-  const replies = await DrafterAgent.run(email.subject, email.body);
 
   // Validate results
   const validation = await ValidationAgent.run({

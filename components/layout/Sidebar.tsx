@@ -24,7 +24,7 @@ const navItems = [
 
 export function Sidebar({ user, activeLabel, onLabelChange, onCompose, onAccountRemoved }: Props) {
   return (
-    <aside className="w-56 flex flex-col h-full border-r border-border bg-background relative">
+    <aside className="hidden md:flex w-56 h-full border-r border-border bg-background flex-col">
       {/* Logo */}
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center gap-2 px-2 py-1">
@@ -47,7 +47,7 @@ export function Sidebar({ user, activeLabel, onLabelChange, onCompose, onAccount
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 overflow-y-auto px-2 space-y-0.5">
         {navItems.map(({ label, icon: Icon, display }) => (
           <button
             key={label}
@@ -66,7 +66,7 @@ export function Sidebar({ user, activeLabel, onLabelChange, onCompose, onAccount
       </nav>
 
       {/* User profile with account switching */}
-      <div className="p-3 border-t border-border relative z-50">
+      <div className="p-3 border-t border-border mt-auto">
         <AccountSwitcher onAccountRemoved={onAccountRemoved} />
       </div>
     </aside>

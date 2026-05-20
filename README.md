@@ -1,14 +1,15 @@
 # Mavio - AI-First Email Client
 
-A production-ready AI-first email client built with Next.js 15, featuring explainable AI insights, smart replies, and intelligent prioritization.
+An AI-first email client MVP built with Next.js 15, featuring explainable AI insights, smart replies, and intelligent prioritization.
 
-## Mobile UX Improvements
+## Mobile Implementation
 
-The application includes mobile-first spacing optimizations to improve the AI showcase visibility on mobile devices:
-- Reduced vertical spacing on login page to make AI ProductPreview visible above the fold
-- Compact padding on AI panels (AIPanel, PatternPanel, FolderSuggestions) for better mobile information hierarchy
-- Improved viewport handling on mobile browsers using `85dvh` for compose modal
-- Touch targets maintained at minimum 44px for usability
+The application is a mobile-ready PWA with responsive design:
+- Mobile navigation drawer with full account switching
+- Responsive inbox layout with adaptive email list/detail views
+- Touch-optimized compose modal with proper viewport handling
+- PWA manifest for installability on mobile devices
+- Responsive spacing and component sizing across breakpoints
 
 ## OAuth Redirect URI Configuration
 
@@ -33,11 +34,11 @@ When deploying to Vercel, you must update the OAuth redirect URIs in your provid
 | Deliverable | Location |
 |---|---|
 | Live Vercel URL | https://mavio.vercel.app |
-| `CLAUDE.md` | [`docs/CLAUDE.md`](docs/CLAUDE.md) (project context) and [`frontend/CLAUDE.md`](frontend/CLAUDE.md) (code-side rules) |
+| `CLAUDE.md` | [`docs/CLAUDE.md`](docs/CLAUDE.md) (project context) |
 | One-page architecture doc | [`docs/architecture.md`](docs/architecture.md) |
 | List of agents / skills / hooks / plugins | [`docs/AGENTS_SKILLS_HOOKS_PLUGINS.md`](docs/AGENTS_SKILLS_HOOKS_PLUGINS.md) |
 | Workflow writeup | [`docs/agent-workflow.md`](docs/agent-workflow.md) |
-| Automated tests | `frontend/{agents,skills,lib}/__tests__/` (Jest, 75 tests in 14 suites) + `frontend/e2e/` (Playwright) |
+| Automated tests | `{agents,skills,lib}/__tests__/` (Jest, 15 test files) |
 | CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — lint + `tsc --noEmit` + Jest |
 
 ---
@@ -50,11 +51,11 @@ When deploying to Vercel, you must update the OAuth redirect URIs in your provid
 - **AI insights per email** — generated summary + 3 smart reply drafts (professional / friendly / concise) + priority score + factors + classification + actions
 - **Cross-email pattern detection** — recurring senders, deadline clusters, unreplied urgent
 - **Smart folder suggestions** — bulk-organize actions
-- **Semantic search** with pgvector + Hugging Face embeddings
+- **Semantic search** with pgvector + keyword fallback (gracefully degrades when embeddings unavailable)
 - **Keyboard shortcuts** — j/k navigation, e archive, r reply, c compose, s star, ? help
 - **Encrypted IMAP credentials** at rest (AES-256-GCM)
 - **Installable PWA** — manifest + standalone display
-- **Mobile-first responsive UI** with sidebar nav drawer
+- **Mobile-responsive UI** with navigation drawer
 
 ## Tech stack
 
@@ -85,15 +86,14 @@ When deploying to Vercel, you must update the OAuth redirect URIs in your provid
 │   ├── agent-workflow.md           — workflow writeup
 │   ├── AGENTS_SKILLS_HOOKS_PLUGINS.md
 │   └── screenshots/
-└── frontend/                       — the Next.js app (Vercel root directory)
-    ├── app/                        — routes + API handlers
-    ├── agents/                     — 7 AI agents (Groq prompts)
-    ├── skills/                     — 5 reusable pure functions
-    ├── hooks/                      — 3 lifecycle hooks + UI keyboard hook
-    ├── plugins/                    — 3 EmailProvider plugins (Gmail / Outlook / IMAP)
-    ├── components/                 — React UI
-    ├── lib/                        — providers, orchestrator, ai, oauth, encryption, db
-    └── prisma/schema.prisma
+├── app/                            — routes + API handlers
+├── agents/                         — 7 AI agents (Groq prompts)
+├── skills/                         — 5 reusable pure functions
+├── hooks/                          — 4 hooks (3 lifecycle + 1 UI keyboard hook)
+├── plugins/                        — 3 EmailProvider plugins (Gmail / Outlook / IMAP)
+├── components/                     — React UI
+├── lib/                            — providers, orchestrator, ai, oauth, encryption, db
+└── prisma/schema.prisma
 ```
 
 ---
@@ -133,14 +133,13 @@ Free Groq tier is 14,400 requests/day. Background analysis on every fetched emai
 - Outlook / Office 365 — Microsoft Graph + Azure AD, custom Prisma adapter to strip `ext_expires_in`
 - IMAP — imapflow + nodemailer + mailparser, AES-256-GCM password encryption
 
-IMAP archive/trash/star/search are deliberately handled DB-side because folder semantics vary across servers — see the inline note in `frontend/lib/providers/imap.ts`.
+IMAP archive/trash/star/search are deliberately handled DB-side because folder semantics vary across servers — see the inline note in `lib/providers/imap.ts`.
 
 ---
 
 ## Local setup
 
 ```bash
-cd frontend
 npm install
 cp .env.example .env.local       # then fill in keys (see below)
 npx prisma generate
@@ -163,20 +162,19 @@ npm run dev                      # http://localhost:3000
 ### Run the test suite
 
 ```bash
-npm test                  # 75 unit tests across 14 suites
+npm test                  # Jest unit tests
 npx tsc --noEmit          # type-check
-npm run test:e2e          # Playwright auth-redirect smoke test
 npm run lint
 ```
 
-CI runs all of these on every push and pull request.
+CI runs lint, typecheck, and Jest on every push and pull request.
 
 ---
 
 ## Deploy to Vercel
 
 1. Push the repo to GitHub.
-2. Import on Vercel; **root directory = `frontend`**.
+2. Import on Vercel.
 3. Paste the same env vars from `.env.local`.
 4. Add the deployed Vercel URL to the Google OAuth + Azure AD authorised redirect URIs.
 5. Set `NEXTAUTH_URL` to your Vercel URL.
@@ -186,10 +184,38 @@ CI runs all of these on every push and pull request.
 ## Honest scope
 
 **Implemented and working:**
-Unified inbox · Gmail / Outlook / IMAP · account switching · compose / reply / forward / search · archive / delete / star / mark read · AI summary · explainable priority · 3-tone reply drafts · classification · pattern detection · folder suggestions · semantic search · keyboard shortcuts · onboarding · encrypted IMAP creds · PWA.
+Unified inbox · Gmail / Outlook / IMAP · account switching · compose / reply / forward / search · archive / delete / star / mark read · AI summary · explainable priority · 3-tone reply drafts · classification · pattern detection · folder suggestions · keyboard shortcuts · onboarding · encrypted IMAP creds · PWA · mobile-responsive UI.
 
-**Deferred (out of MVP scope, documented in `docs/CLAUDE.md`):**
-Conversation threading · message-level offline sync via IndexedDB · push notifications · IMAP archive/trash at the IMAP layer · advanced label management · analytics dashboard.
+**Deferred / MVP Tradeoffs (see Known MVP Tradeoffs section below):**
+Conversation threading · semantic search embeddings disabled (graceful keyword fallback) · message-level offline sync via IndexedDB · push notifications · IMAP archive/trash at the IMAP layer (DB-side only) · advanced label management · analytics dashboard.
+
+---
+
+## Known MVP Tradeoffs
+
+### Semantic Search
+- **Status**: Functional with graceful fallback
+- **Details**: The pgvector extension is enabled in the database schema, and the semantic search API route exists (`/api/emails/semantic-search`). The `aiEmbedding` column is commented out in `prisma/schema.prisma` with the note `// pgvector extension disabled for now`. The search route implements defensive engineering: it attempts pgvector cosine similarity search first, and if the column is unavailable, gracefully falls back to case-insensitive keyword search across subject, fromName, fromEmail, and snippet fields. The response includes a `method` field (`'semantic'` vs `'fallback-keyword'`) so the caller knows which path executed. The Hugging Face embeddings API integration exists in `lib/ai/embeddings.ts` but is not wired to the email ingestion pipeline.
+
+### IMAP Provider Limitations
+- **Status**: DB-side operations only
+- **Details**: IMAP archive, trash, and star operations are handled at the database layer only, not at the IMAP protocol layer. This creates a disconnect between the app state and the actual IMAP server state. This is documented in `lib/providers/imap.ts` as a deliberate MVP tradeoff due to folder semantic variability across IMAP servers.
+
+### Conversation Threading
+- **Status**: Not implemented
+- **Details**: Each email thread renders as the first message only. No conversation threading or message grouping is implemented. This is a core email client feature deferred for MVP scope.
+
+### Offline Sync
+- **Status**: PWA shell only
+- **Details**: The app has a PWA manifest and can be installed, but message-level offline sync via IndexedDB is not implemented. Users must be online to fetch and view emails.
+
+### Push Notifications
+- **Status**: Not implemented
+- **Details**: The app uses 30-second polling for new email detection instead of push notifications. This is a battery and resource tradeoff for MVP.
+
+### Mobile Experience
+- **Status**: Responsive but not mobile-optimized
+- **Details**: The app has responsive layouts and a mobile navigation drawer, but is not fully optimized for mobile UX. Some interactions and layouts are desktop-first.
 
 ---
 

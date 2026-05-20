@@ -14,7 +14,6 @@ Every feature flowed through four stages, with the AI pair-programmer (Cascade /
 | File | Purpose |
 |---|---|
 | `docs/CLAUDE.md` | Always-loaded project context (tech stack, scope, working agreement). |
-| `frontend/CLAUDE.md` | Code-side rules for the AI working inside `frontend/`. |
 | `docs/architecture.md` | One-page system + data flow + lifecycle. |
 | `docs/AGENTS_SKILLS_HOOKS_PLUGINS.md` | The required deliverable — every component listed with its file path and contract. |
 | Inline route comments | Each `app/api/.../route.ts` opens with a JSDoc block stating purpose + request/response shape. |
@@ -33,20 +32,19 @@ The brief asked for "multi-agent workflow." I treated agents as **specialized pr
 | `PatternDetectorAgent` | array of recent emails | cross-email signals |
 | `FolderSuggestionAgent` | array of classified emails | bulk-organize actions |
 
-The orchestrator (`frontend/lib/orchestrator.ts`) chains the first five agents sequentially and is wired to `POST /api/ai/analyze`. The lighter `/api/ai/summary` and `/api/ai/reply` routes call agents directly so user-facing latency stays low.
+The orchestrator (`lib/orchestrator.ts`) runs Classifier, Summarizer, and Drafter in parallel via Promise.all, then Prioritizer and Validation sequentially, and is wired to `POST /api/ai/analyze`. The lighter `/api/ai/summary` and `/api/ai/reply` routes call agents directly so user-facing latency stays low.
 
 ## Skills, hooks, plugins
 
 - **Skills** are pure functions (`extractActions`, `parseEmail`, `detectUrgency`, `generateSummary`, `generateReply`). Anything an agent reuses lives here.
-- **Hooks** (`onEmailReceived`, `onAnalysisComplete`, `onReplyGenerated`) are instrumentation seams — `console.log` today, the integration point for future side-effects (push notifications, webhooks, audit log). Documenting them as instrumentation is honest; calling them an event bus would not be.
+- **Hooks** (`onEmailReceived`, `onAnalysisComplete`, `onReplyGenerated`, `useKeyboardShortcuts`) are instrumentation seams — lifecycle hooks are `console.log` today, the integration point for future side-effects (push notifications, webhooks, audit log). `useKeyboardShortcuts` is a React hook for keyboard navigation. Documenting them as instrumentation is honest; calling them an event bus would not be.
 - **Plugins** are `EmailProvider` implementations: `GmailPlugin` (googleapis), `OutlookPlugin` (Microsoft Graph), `ImapPlugin` (imapflow + nodemailer + mailparser). All three are real and in production use; the plugin classes wrap the concrete providers in `lib/providers/` and add metadata for the Agent OS registry.
 
 ## Test discipline
 
-- **Unit tests** mock `groq-sdk` at the module level — tests never hit the network. 75 tests across 14 suites, all green: `frontend/agents/__tests__/`, `frontend/skills/__tests__/`, `frontend/lib/__tests__/`, `frontend/lib/providers/__tests__/`.
+- **Unit tests** mock `groq-sdk` at the module level — tests never hit the network. 15 test files across multiple suites: `agents/__tests__/`, `skills/__tests__/`, `lib/__tests__/`, `lib/providers/__tests__/`.
 - **Encryption** is tested for round-trip, IV tampering, tag tampering, empty strings, and special characters.
 - **Orchestrator** is covered by a fully-mocked test that asserts every agent gets called once and every hook fires the right number of times.
-- **E2E** is a Playwright auth-redirect smoke test in `frontend/e2e/`.
 - **CI** runs lint + `tsc --noEmit` + `npm test` on every push and PR — see `.github/workflows/ci.yml`.
 
 ## Claude Code discipline applied
@@ -55,11 +53,11 @@ The orchestrator (`frontend/lib/orchestrator.ts`) chains the first five agents s
 2. **Tight feedback loops.** Each slice is verified in a real browser with a real provider before moving on.
 3. **Single source of truth per concern.** AI prompts live in `agents/` or `lib/ai/gemini.ts`. Provider I/O lives in `lib/providers/`. There is one orchestrator. Don't fork.
 4. **No premature abstraction.** No event bus, no message queue, no state machine, no LangGraph, no microservices. When those things become justified (multi-step research, distributed teams), the architecture has clean seams to add them.
-5. **Honest documentation.** If something is "DB-side because IMAP folder semantics vary," that goes in the source and in `docs/`. No aspirational claims.
+5. **Honest documentation.** If something is "DB-side because IMAP folder semantics vary," that goes in the source and in `docs/`. No aspirational claims. Semantic search has graceful fallback to keyword search when embeddings unavailable (aiEmbedding column disabled).
 
 ## What I'd do next
 
-- Streaming AI responses through Server-Sent Events end-to-end (the `streamSummary` skeleton exists in `lib/ai/gemini.ts`).
+- Streaming AI responses through Server-Sent Events end-to-end (the `streamSummary` skeleton exists in `lib/ai/groq.ts`).
 - Real conversation threading (group emails by `threadId` in the inbox view).
 - Full IndexedDB offline sync for the PWA.
 - A skill registry the LLM can call as tools, instead of fixed orchestrator chains.

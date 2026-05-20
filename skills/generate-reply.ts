@@ -1,14 +1,13 @@
-import Groq from 'groq-sdk';
+import { getGroqClient } from '@/lib/ai/groq';
 import { ReplyDraft } from '@/types/email';
+
+// NOTE: This skill makes AI calls via the shared Groq singleton.
+// It is classified as a "thin skill wrapper" and tested with mocked Groq.
 
 const MODEL = 'llama-3.3-70b-versatile';
 
-function getClient(): Groq {
-  return new Groq({ apiKey: process.env.GROQ_API_KEY! });
-}
-
 async function generate(prompt: string): Promise<string> {
-  const groq = getClient();
+  const groq = getGroqClient();
   const res = await groq.chat.completions.create({
     model: MODEL,
     messages: [{ role: 'user', content: prompt }],

@@ -25,14 +25,14 @@
         │   Agent OS layer                                        │
         │   ┌──────────┐  ┌──────────┐  ┌──────────┐ ┌─────────┐  │
         │   │ agents/  │  │ skills/  │  │  hooks/  │ │ plugins/│  │
-        │   │ 7 agents │  │ 5 utils  │  │ 3 hooks  │ │ 3 plugs │  │
+        │   │ 7 agents │  │ 5 utils  │  │ 4 hooks  │ │ 3 plugs │  │
         │   └────┬─────┘  └────┬─────┘  └────┬─────┘ └────┬────┘  │
         │        │             │             │            │        │
         │        ▼             ▼             ▼            ▼        │
         │   lib/orchestrator.ts ─── lib/providers/{gmail,outlook,imap}.ts │
         │        │             │                                   │
         │        ▼             ▼                                   │
-        │   lib/ai/gemini.ts   lib/ai/embeddings.ts                │
+        │   lib/ai/groq.ts   lib/ai/embeddings.ts                │
         │        │             │                                   │
         └────────┼─────────────┼───────────────────────────────────┘
                  │             │
@@ -63,7 +63,7 @@
 
 **2. AI analysis (`POST /api/ai/analyze`)**
 1. Loads one `Email` row.
-2. Calls `lib/orchestrator.processEmail()` → `Classifier → Prioritizer → Summarizer → confidence → Drafter → Validation`.
+2. Calls `lib/orchestrator.processEmail()` → `[Classifier, Summarizer, Drafter]` in parallel → `Prioritizer → confidence → Validation`.
 3. Triggers `onEmailReceived`, `onAnalysisComplete`, and `onReplyGenerated` (×3) hooks for instrumentation.
 4. Persists the unified result back to `Email.ai*` columns.
 5. The lighter routes (`/api/ai/summary`, `/api/ai/reply`) call individual agents directly for low-latency on-demand UX.
@@ -83,7 +83,7 @@
 | `Session` | NextAuth-style DB session token |
 | `Email` | Cached message + AI columns (`aiSummary`, `aiPriorityScore`, `aiPriorityLabel`, `aiPriorityFactors`, `aiCategory`, `aiConfidence`, `aiActions`, `aiUrgency`, `aiWhyItMatters`, `aiNextSteps`). Indexed on `(userId, receivedAt desc)`, `(userId, accountId, receivedAt desc)`. Unique on `(userId, gmailId)`, `(userId, outlookId)`, `(accountId, providerMessageId)`. |
 
-`pgvector` extension is enabled at the schema level for semantic search.
+`pgvector` extension is enabled at the schema level, but the `aiEmbedding` column is commented out in the MVP. Semantic search route (`/api/emails/semantic-search`) implements defensive engineering: it attempts pgvector cosine similarity search first, and if the column is unavailable, gracefully falls back to case-insensitive keyword search across subject, fromName, fromEmail, and snippet fields. The response includes a `method` field (`'semantic'` vs `'fallback-keyword'`) so the caller knows which path executed.
 
 ## Performance & quotas
 
@@ -93,7 +93,7 @@
 | Gmail API quota (10k units/day) | Cache-first: only fetch metadata when missing |
 | Microsoft Graph rate limits | Cache-first; per-user incremental sync |
 | Groq quota (14.4k/day) | **On-demand AI only**; results persist to `Email.ai*` columns. `lib/quota-guard.ts` enforces a per-user daily cap (default 200 calls/user/day) so one user can't exhaust the shared key. Returns `429` with `Retry-After` headers. |
-| HF inference rate limits | Embeddings generated once per email and stored |
+| HF inference rate limits | Embeddings API exists but is not wired to email ingestion (aiEmbedding column disabled in MVP) |
 | Inbox staleness | 30 s silent poll + immediate refresh after compose / send |
 
 ## Security
@@ -113,5 +113,6 @@
 - IMAP archive/trash at the protocol layer (DB-side flag — folder names vary too much across servers)
 - Advanced label management
 - Analytics dashboard
+- Semantic search embeddings (pgvector extension enabled, but aiEmbedding column commented out; search route has graceful keyword fallback)
 
 These are written down so reviewers know what's real vs deferred. See `docs/CLAUDE.md` for full rationale.

@@ -58,6 +58,8 @@ export function EmailList({
           selected={email.id === selectedId}
           onClick={() => onSelect(email)}
           onAction={onAction}
+          onArchive={(id) => onAction('archive', id, email.threadId)}
+          onDelete={(id) => onAction('trash', id, email.threadId)}
         />
       ))}
 

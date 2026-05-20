@@ -1,10 +1,22 @@
 import Groq from 'groq-sdk';
 import { AIAction, ReplyDraft, PriorityLabel } from '@/types/email';
 
+// ─── Singleton client ────────────────────────────────────────────────────────
+// All agents and skills must call getGroqClient() instead of new Groq().
+// The instance is created once per process and reused across all invocations.
+let _groqClient: Groq | null = null;
+export function getGroqClient(): Groq {
+  if (!_groqClient) {
+    _groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+  }
+  return _groqClient;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const MODEL = 'llama-3.3-70b-versatile';
 
 function getClient(): Groq {
-  return new Groq({ apiKey: process.env.GROQ_API_KEY! });
+  return getGroqClient();
 }
 
 async function generate(prompt: string): Promise<string> {

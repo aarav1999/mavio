@@ -1,13 +1,13 @@
-# Mavio — Working Agreement (frontend/)
+# Mavio — Working Agreement
 
-> Short, code-side `CLAUDE.md` for the AI pair-programmer working inside `frontend/`. The full project context lives in `../docs/CLAUDE.md` — read that first.
+> Short, code-side `CLAUDE.md` for the AI pair-programmer. The full project context lives in `docs/CLAUDE.md` — read that first.
 
 ## Boundaries
 
-- **All app code is under `frontend/`.** There is no other deployable folder. Vercel root directory = `frontend`.
+- **All app code is at the repo root.** Vercel deploys from the root.
 - **All AI calls are funneled through one of two places:**
-  - `lib/ai/gemini.ts` — the original Groq client wrapper, used for streaming summary + a few legacy helpers.
-  - `agents/*-agent.ts` — seven agents that each construct their own Groq client. Do not invent new entry points; extend an agent or add one alongside the existing seven.
+  - `lib/ai/groq.ts` — shared Groq client. Exports `getGroqClient()` (module-level singleton) plus all AI helper functions (generateSummary, analyzePriority, generateReplyDrafts, etc.).
+  - `agents/*-agent.ts` — seven agents. All agents import `getGroqClient` from `@/lib/ai/groq`. Do not instantiate `new Groq()` anywhere else.
 - **All email I/O goes through `lib/providers/`** (`gmail.ts`, `outlook.ts`, `imap.ts`). The `plugins/` folder contains thin wrappers that exist purely for plugin-registry / metadata uniformity.
 
 ## Folder contracts
